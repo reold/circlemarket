@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from pydantic import BaseModel, Field
 from hashlib import sha256
@@ -43,7 +43,6 @@ def user(username: str):
 
     del acc["key"]
     del acc["password"]
-    del acc["email"]
     del acc["access_tokens"]
     del acc["inventory_key"]
     del acc["picture_key"]
