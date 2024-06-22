@@ -27,6 +27,8 @@ class AccountInfo(SignupInfo):
     rating_count: int = Field(0, min=0)
     inventory_key: str
     access_tokens: list = []
+    age: int = 0
+    location: str = ""
 
 class LoginInfo(BaseModel):
     email: str
