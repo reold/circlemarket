@@ -1,11 +1,14 @@
 from fastapi import APIRouter
+from fastapi.responses import FileResponse, StreamingResponse
 
 from pydantic import BaseModel, Field
 from hashlib import sha256
 from uuid import uuid4 as uuid
 import time
+import os
+import io
 
-from app.db import user_db, inventory_db
+from app.db import user_db, inventory_db, media_drive
 from app.resp import respond
 
 router = APIRouter(prefix="/account")
@@ -28,6 +31,43 @@ class AccountInfo(SignupInfo):
 class LoginInfo(BaseModel):
     email: str
     password: str
+
+@router.get("/@{username}")
+def user(username: str):
+    resp = user_db.fetch({"username": username})
+
+    if resp.count == 0:
+        return respond({}, False, "account-not-found")
+
+    acc = resp.items[0]
+
+    del acc["key"]
+    del acc["password"]
+    del acc["email"]
+    del acc["access_tokens"]
+    del acc["inventory_key"]
+    del acc["picture_key"]
+
+    acc["picture_url"] = f"{os.getenv("ROOT_URL")}/api/account/picture/@{acc["username"]}"
+
+    return acc
+
+@router.get("/picture/@{username}")
+def user_picture(username: str):
+    resp = user_db.fetch({"username": username})
+
+    if resp.count == 0:
+        return respond({}, False, "account-not-found")
+    
+    acc = resp.items[0]
+    if acc["picture_key"] == "":
+        picture = media_drive.get("no-profile-picture.jpg")
+        
+        return StreamingResponse(io.BytesIO(picture.read()), media_type="image/*")
+
+    picture = media_drive.get(acc["picture_key"])
+
+    return StreamingResponse(io.BytesIO(picture.read()), media_type="image/*")
 
 @router.post("/signup")
 def signup(info: SignupInfo):
@@ -74,4 +114,4 @@ async def login(info: LoginInfo):
 
         return respond({"access_token": client_access_token})
     else:
-        return respond({}, False, "inncorrect-password")
+        return respond({}, False, "incorrect-password")
